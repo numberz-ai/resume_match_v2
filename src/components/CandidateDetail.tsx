@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { mockCandidates } from '../data/mockData';
 import { useCandidatesStore } from '../store/candidatesStore';
+import { type Candidate } from '../types';
+import jsPDF from 'jspdf';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -21,23 +23,51 @@ import {
   AlertCircle, ChevronRight, Clock, Brain,
   StickyNote, History, ClipboardList, Plus, Eye, Edit3,
   Activity, BarChart3, Gauge,
-  ThumbsUp, ThumbsDown
+  ThumbsUp, ThumbsDown, Loader2
 } from 'lucide-react';
 
 interface CandidateDetailProps {
   candidateId: string;
+  candidate?: Candidate | null;
   onClose: () => void;
 }
 
-// mock data
-export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) {
+// Use candidate data from props if available, otherwise fallback to mock data
+export function CandidateDetail({ candidateId, candidate: candidateFromProps, onClose }: CandidateDetailProps) {
   const { getCandidateActiveTab, setCandidateActiveTab } = useCandidatesStore();
   const cachedActiveTab = getCandidateActiveTab(candidateId);
   
-  const candidate = mockCandidates[0] //.find(c => c.id === candidateId);
+  // Use candidate from props if available, otherwise fallback to mock data
+  const candidateFromSource = candidateFromProps || mockCandidates.find(c => c.id === candidateId) || mockCandidates[0];
+  console.log('-----------------', candidateFromSource);
+  // Ensure candidate has all required fields with defaults
+  const candidate: Candidate = {
+    id: candidateFromSource?.id || candidateId,
+    name: candidateFromSource?.name || 'Unknown',
+    title: candidateFromSource?.title || '',
+    location: candidateFromSource?.location || '',
+    email: candidateFromSource?.email || '',
+    phone: candidateFromSource?.phone || '',
+    avatar: candidateFromSource?.avatar || '',
+    education: candidateFromSource?.education || '',
+    skills: candidateFromSource?.skills || [],
+    summary: candidateFromSource?.summary || '',
+    matchScore: candidateFromSource?.matchScore || 0,
+    experience: candidateFromSource?.experience || 0,
+    status: candidateFromSource?.status || 'new',
+    appliedDate: candidateFromSource?.appliedDate || new Date().toISOString(),
+    resumeUrl: candidateFromSource?.resumeUrl || '',
+    linkedIn: candidateFromSource?.linkedIn,
+    github: candidateFromSource?.github,
+    stackoverflow: candidateFromSource?.stackoverflow,
+    medium: candidateFromSource?.medium,
+    website: candidateFromSource?.website,
+  };
+  
   const [status, setStatus] = useState(candidate?.status || 'new');
   const [assignedTo, setAssignedTo] = useState('john-doe');
   const [activeTab, setActiveTab] = useState(cachedActiveTab);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   // Persist active tab when it changes
   useEffect(() => {
@@ -73,6 +103,126 @@ export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) 
   };
 
   const matchLevel = getMatchLevel(candidate.matchScore);
+
+  // Handle resume download - Generate PDF on frontend
+  const handleDownloadResume = () => {
+    if (!candidate || isDownloading) return;
+    
+    setIsDownloading(true);
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPosition = margin;
+      const lineHeight = 7;
+      const sectionSpacing = 10;
+
+      // Helper function to add text with word wrap
+      const addText = (text: string, fontSize: number, isBold: boolean = false, color: string = '#000000', align: 'left' | 'center' | 'right' = 'left') => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(color);
+        
+        const maxWidth = pageWidth - (margin * 2);
+        const lines = doc.splitTextToSize(text, maxWidth);
+        
+        if (yPosition + (lines.length * lineHeight) > pageHeight - margin) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        
+        lines.forEach((line: string) => {
+          const xPosition = align === 'center' ? pageWidth / 2 : (align === 'right' ? pageWidth - margin : margin);
+          doc.text(line, xPosition, yPosition, { align });
+          yPosition += lineHeight;
+        });
+      };
+
+      // Header (centered, matching Resume tab)
+      addText(candidate.name, 24, true, '#000000', 'center');
+      yPosition += 2;
+      addText(candidate.title, 14, false, '#666666', 'center');
+      yPosition += 5;
+
+      // Contact Information (centered, using candidate data from props)
+      const contactInfo: string[] = [];
+      if (candidate.email && candidate.email !== 'N/A') contactInfo.push(candidate.email);
+      if (candidate.phone && candidate.phone !== 'N/A') contactInfo.push(candidate.phone);
+      if (candidate.location && candidate.location !== 'N/A') contactInfo.push(candidate.location);
+      
+      if (contactInfo.length > 0) {
+        addText(contactInfo.join(' • '), 10, false, '#666666', 'center');
+        yPosition += sectionSpacing;
+      }
+
+      // Add separator line
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += sectionSpacing;
+
+      // Professional Summary (using candidate data from props)
+      if (candidate.summary) {
+        addText('Professional Summary', 16, true, '#333333');
+        yPosition += 3;
+        addText(candidate.summary, 10);
+        yPosition += sectionSpacing;
+      }
+
+      // Work Experience (using candidate data)
+      if (candidate.experience) {
+        addText('Work Experience', 16, true, '#333333');
+        yPosition += 3;
+        addText(`${candidate.experience} years of experience`, 10);
+        if (candidate.title) {
+          yPosition += 2;
+          addText(`Current Role: ${candidate.title}`, 10);
+        }
+        yPosition += sectionSpacing;
+      }
+
+      // Education (using candidate data from props)
+      if (candidate.education) {
+        addText('Education', 16, true, '#333333');
+        yPosition += 3;
+        addText(candidate.education, 10);
+        yPosition += sectionSpacing;
+      }
+
+      // Technical Skills (using candidate data from props)
+      if (candidate.skills && candidate.skills.length > 0) {
+        addText('Technical Skills', 16, true, '#333333');
+        yPosition += 3;
+        addText(candidate.skills.join(', '), 10);
+        yPosition += sectionSpacing;
+      }
+
+      // Social Links (if available)
+      const socialLinks: string[] = [];
+      if (candidate.linkedIn) socialLinks.push(`LinkedIn: ${candidate.linkedIn}`);
+      if (candidate.github) socialLinks.push(`GitHub: ${candidate.github}`);
+      if (candidate.website) socialLinks.push(`Website: ${candidate.website}`);
+      
+      if (socialLinks.length > 0) {
+        addText('Online Presence', 16, true, '#333333');
+        yPosition += 3;
+        socialLinks.forEach((link) => {
+          addText(link, 10);
+          yPosition -= 1;
+        });
+        yPosition += sectionSpacing;
+      }
+
+      // Save the PDF
+      const fileName = `${candidate.name.replace(/\s+/g, '_')}_Resume.pdf`;
+      doc.save(fileName);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again later.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const matchBreakdown = [
     { 
@@ -324,9 +474,11 @@ export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) 
           <Card className="p-6">
             <div className="flex flex-col items-center text-center mb-4">
               <Avatar className="size-20 mb-3 border-4 border-white shadow-lg ring-2 ring-gray-100">
-                <AvatarImage src={candidate.avatar} alt={candidate.name} />
+                {candidate.avatar ? (
+                  <AvatarImage src={candidate.avatar} alt={candidate.name} />
+                ) : null}
                 <AvatarFallback className="bg-primary text-white text-xl">
-                  {candidate.name.split(' ').map(n => n[0]).join('')}
+                  {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <h2 className="text-gray-900 mb-1">{candidate.name}</h2>
@@ -342,14 +494,18 @@ export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) 
             </div>
 
             <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-gray-50 rounded">
-                <Mail className="size-4 text-primary flex-shrink-0" />
-                <span className="truncate text-xs">{candidate.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-gray-50 rounded">
-                <Phone className="size-4 text-primary flex-shrink-0" />
-                <span className="text-xs">{candidate.phone}</span>
-              </div>
+              {candidate.email && (
+                <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-gray-50 rounded">
+                  <Mail className="size-4 text-primary flex-shrink-0" />
+                  <span className="truncate text-xs">{candidate.email}</span>
+                </div>
+              )}
+              {candidate.phone && (
+                <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-gray-50 rounded">
+                  <Phone className="size-4 text-primary flex-shrink-0" />
+                  <span className="text-xs">{candidate.phone}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-gray-50 rounded">
                 <MapPin className="size-4 text-primary flex-shrink-0" />
                 <span className="text-xs">{candidate.location}</span>
@@ -386,9 +542,23 @@ export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) 
             <Separator className="my-4" />
 
             {/* Resume Download */}
-            <Button variant="outline" className="w-full">
-              <FileText className="size-4 mr-2" />
-              Download Resume
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleDownloadResume}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <FileText className="size-4 mr-2" />
+                  Download Resume
+                </>
+              )}
             </Button>
           </Card>
 
@@ -571,9 +741,23 @@ export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) 
                     <FileText className="size-5 text-primary" />
                     <h3 className="text-gray-900">Resume</h3>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Download className="size-4 mr-2" />
-                    Download PDF
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleDownloadResume}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="size-4 mr-2" />
+                        Download PDF
+                      </>
+                    )}
                   </Button>
                 </div>
 
@@ -583,21 +767,31 @@ export function CandidateDetail({ candidateId, onClose }: CandidateDetailProps) 
                   <div className="text-center border-b pb-6">
                     <h1 className="text-3xl text-gray-900 mb-2">{candidate.name}</h1>
                     <p className="text-lg text-gray-600 mb-3">{candidate.title}</p>
-                    <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Mail className="size-4" />
-                        {candidate.email}
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="size-4" />
-                        {candidate.phone}
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="size-4" />
-                        {candidate.location}
-                      </span>
+                    <div className="flex items-center justify-center gap-4 text-sm text-gray-600 flex-wrap">
+                      {candidate.email && (
+                        <>
+                          <span className="flex items-center gap-1">
+                            <Mail className="size-4" />
+                            {candidate.email}
+                          </span>
+                          {(candidate.phone || candidate.location) && <span>•</span>}
+                        </>
+                      )}
+                      {candidate.phone && (
+                        <>
+                          <span className="flex items-center gap-1">
+                            <Phone className="size-4" />
+                            {candidate.phone}
+                          </span>
+                          {candidate.location && <span>•</span>}
+                        </>
+                      )}
+                      {candidate.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="size-4" />
+                          {candidate.location}
+                        </span>
+                      )}
                     </div>
                   </div>
 

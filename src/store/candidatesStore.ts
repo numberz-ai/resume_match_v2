@@ -109,9 +109,10 @@ export const useCandidatesStore = create<CandidatesStore>()(
     }),
     {
       name: 'candidates-store',
-      // Only persist filters, not the cache (cache is in-memory only)
+      // Don't persist filters - they reset on page reload
+      // Only persist candidateActiveTab if needed in the future
       partialize: (state) => ({
-        filters: state.filters,
+        candidateActiveTab: state.candidateActiveTab,
       }),
     }
   )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { type CVSearchCandidate } from '../api';
 import { searchCandidates } from '../api/cv.api';
 import { candidatesApi, type Candidate } from '../api/candidates.api';
@@ -6,8 +6,7 @@ import { CandidateSearch } from './CandidateSearch';
 import { useCandidatesStore } from '../store/candidatesStore';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { 
   Download, 
   Briefcase, 
@@ -35,7 +34,7 @@ import {
 
 interface CandidateListProps {
   selectedCandidateId?: string | null;
-  onSelectCandidate?: (id: string) => void;
+  onSelectCandidate?: (id: string, candidate?: Candidate) => void;
   onNavigateToAddCandidate?: () => void;
 }
 
@@ -150,14 +149,14 @@ export function CandidateList({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [isLoadingDefaults, setIsLoadingDefaults] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const { getDefaultCandidates, setDefaultCandidates, filters, setFilters } = useCandidatesStore();
+  const { getDefaultCandidates, setDefaultCandidates } = useCandidatesStore();
   
-  // Use filters from store
-  const [searchQuery, setSearchQuery] = useState(filters.searchQuery);
-  const [selectedFilter, setSelectedFilter] = useState(filters.selectedFilter);
-  const [locationFilter, setLocationFilter] = useState(filters.locationFilter);
-  const [experienceFilter, setExperienceFilter] = useState(filters.experienceFilter);
-  const [skillsFilter, setSkillsFilter] = useState(filters.skillsFilter);
+  // Initialize filters with default values (not persisted)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
+  const [experienceFilter, setExperienceFilter] = useState('all');
+  const [skillsFilter, setSkillsFilter] = useState('');
   
   // Cleanup: abort any pending requests on unmount
   useEffect(() => {
@@ -168,36 +167,6 @@ export function CandidateList({
     };
   }, []);
 
-  // Restore filters from store on mount (only if not coming from sessionStorage)
-  useEffect(() => {
-    const storedResults = sessionStorage.getItem('searchResults');
-    const storedQuery = sessionStorage.getItem('searchQuery');
-    
-    // Only restore from store if not coming from sessionStorage (dashboard search)
-    if (!storedResults && !storedQuery) {
-      setSearchQuery(filters.searchQuery);
-      setSelectedFilter(filters.selectedFilter);
-      setLocationFilter(filters.locationFilter);
-      setExperienceFilter(filters.experienceFilter);
-      setSkillsFilter(filters.skillsFilter);
-    }
-  }, []); // Only run on mount
-
-  // Persist filter changes to store (debounced to avoid too many updates)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setFilters({
-        searchQuery,
-        selectedFilter,
-        locationFilter,
-        experienceFilter,
-        skillsFilter,
-      });
-    }, 100); // Small delay to batch updates
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, selectedFilter, locationFilter, experienceFilter, skillsFilter, setFilters]);
-
   // Load search results from sessionStorage (from Dashboard search)
   useEffect(() => {
     const storedResults = sessionStorage.getItem('searchResults');
@@ -205,6 +174,7 @@ export function CandidateList({
     
     if (storedResults && storedQuery) {
       const results = JSON.parse(storedResults);
+      console.log('🔍 Stored results:', results);
       setApiSearchResults(results);
       setUseApiSearch(true);
       setSearchQuery(storedQuery);
@@ -212,35 +182,42 @@ export function CandidateList({
       sessionStorage.removeItem('searchQuery');
       setLoading(false);
     } else {
-      // Default to "all resume" query when no search query is present
+      // Load candidates with empty query when no search query is present
       loadCandidates();
     }
   }, []);
 
-  const loadCandidates = async (silent = false, preserveSearchQuery = false) => {
+  const loadCandidates = async (silent = false, preserveSearchQuery = false, forceRefresh = false) => {
     // Don't load defaults if we have an active search query (unless explicitly clearing)
     const currentSearchQuery = searchQuery;
     if (currentSearchQuery.trim() && !preserveSearchQuery) {
       return;
     }
     
-    // Check cache first - show immediately if available
+    // Get cached candidates for reference (used in error handling)
     const cachedCandidates = getDefaultCandidates();
-    if (cachedCandidates) {
-      console.log('⚡ Using cached default candidates');
-      setApiSearchResults(cachedCandidates);
-      setUseApiSearch(true);
-      if (!preserveSearchQuery) {
-        setSearchQuery('');
-      }
-      // Still fetch in background to refresh cache, but don't show loading
-      if (!silent) {
-        setLoading(false);
-      }
+    
+    // If forceRefresh is true (e.g., when clearing filters), always show loader and fetch fresh data
+    if (forceRefresh) {
+      setLoading(true);
     } else {
-      // No cache, show loading if not silent
-      if (!silent) {
-        setLoading(true);
+      // Check cache first - show immediately if available (only when not forcing refresh)
+      if (cachedCandidates) {
+        console.log('⚡ Using cached default candidates');
+        setApiSearchResults(cachedCandidates);
+        setUseApiSearch(true);
+        if (!preserveSearchQuery) {
+          setSearchQuery('');
+        }
+        // Still fetch in background to refresh cache, but don't show loading
+        if (!silent) {
+          setLoading(false);
+        }
+      } else {
+        // No cache, show loading if not silent
+        if (!silent) {
+          setLoading(true);
+        }
       }
     }
     
@@ -257,8 +234,8 @@ export function CandidateList({
     setIsLoadingDefaults(true);
     
     try {
-      // Use "all resume" as default query when no search query is provided (not displayed in UI)
-      const response = await searchCandidates('all resume', abortController.signal);
+      // Use empty query when no search query is provided
+      const response = await searchCandidates('', abortController.signal);
       
       // Check if request was aborted
       if (abortController.signal.aborted) {
@@ -320,12 +297,10 @@ export function CandidateList({
     }
   };
 
-  // Candidate avatars
-  const candidatesWithAvatars = candidates.map((candidate, index) => {
-    const avatarIndex = (index % 10) + 1;
+  // Candidate avatars - remove fake avatars, only use real ones from API
+  const candidatesWithAvatars = candidates.map((candidate) => {
     return {
       ...candidate,
-      fakeAvatar: candidate.avatar || `https://i.pravatar.cc/150?img=${avatarIndex}`
     };
   });
 
@@ -333,21 +308,13 @@ export function CandidateList({
     // Stop any ongoing default loading to prevent overwriting search results
     setIsLoadingDefaults(false);
     
-    // If query is empty, show cached default results immediately, then refresh in background
+    // If query is empty, show skeleton loader and fetch defaults
     if (!query.trim()) {
       // Clear search query in UI
       setSearchQuery('');
       
-      // Check cache first - show immediately if available
-      const cachedCandidates = getDefaultCandidates();
-      if (cachedCandidates) {
-        console.log('⚡ Showing cached default candidates immediately');
-        setApiSearchResults(cachedCandidates);
-        setUseApiSearch(true);
-      }
-      
-      // Load fresh data in background (silent, no loader)
-      loadCandidates(true, false);
+      // Show skeleton loader and fetch defaults (forceRefresh = true)
+      loadCandidates(false, false, true);
       return;
     }
     // Set search results immediately - don't let any other operation overwrite them
@@ -442,31 +409,28 @@ export function CandidateList({
       }
     }
     
-    console.log('🎯 Processing candidate:', {
-      name: apiCandidate.name,
-      matchScore: apiCandidate.matchScore,
-      avg_score: (apiCandidate as any).avg_score,
-      keyword_score: (apiCandidate as any).keyword_score,
-      vector_score: (apiCandidate as any).vector_score,
-      processedMatchScore: matchScore,
-      fullCandidate: apiCandidate
-    });
+    console.log('🎯 Processing candidate:', apiCandidate);
+
+
     
     return {
       id: apiCandidate.id,
       name: apiCandidate.name,
       title: apiCandidate.title,
       location: apiCandidate.location,
-      avatar: apiCandidate.image || '',
-      fakeAvatar: apiCandidate.image || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10) + 1}`,
+      email: (apiCandidate as any).email || (apiCandidate as any).emails?.[0] || '',
+      phone: (apiCandidate as any).phone || '',
+      avatar: apiCandidate.profile_image || apiCandidate.image || '', // Use profile_image first, fallback to image
       skills: apiCandidate.skills || [],
       topSkills: apiCandidate.topSkills || [],
       summary: apiCandidate.profileSummary?.join(' ') || '',
       matchScore: matchScore ?? 0,
       experience: apiCandidate.years_of_experience || 0,
       status: 'new' as const,
-      education: '',
+      education: (apiCandidate as any).education || '',
       yearsExperience: apiCandidate.years_of_experience || 0,
+      appliedDate: new Date().toISOString(),
+      resumeUrl: '',
     };
   }).filter(matchesFilters) : filteredCandidates;
 
@@ -635,6 +599,9 @@ export function CandidateList({
                   setLocationFilter('all');
                   setExperienceFilter('all');
                   setSkillsFilter('');
+                  // Clear search query and reload defaults with skeleton loader
+                  setSearchQuery('');
+                  loadCandidates(false, false, true); // forceRefresh = true to always show loader
                 }}
               >
                 Clear
@@ -765,17 +732,21 @@ export function CandidateList({
                     <TableRow 
                       key={candidate.id}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => onSelectCandidate?.(candidate.id)}
+                      onClick={() => onSelectCandidate?.(candidate.id, candidate)}
                     >
                       {/* Candidate */}
                       <TableCell>
                         <div className="flex items-center gap-3 py-1">
                           <Avatar className="size-10 border border-border">
-                            <ImageWithFallback 
-                              src={candidate.fakeAvatar} 
-                              alt={candidate.name}
-                            />
-                            <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                            {candidate.avatar ? (
+                              <AvatarImage 
+                                src={candidate.avatar} 
+                                alt={candidate.name}
+                              />
+                            ) : null}
+                            <AvatarFallback className="bg-primary text-primary-foreground">
+                              {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
                             <p className="font-medium text-sm text-foreground truncate">

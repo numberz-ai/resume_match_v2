@@ -9,6 +9,7 @@ Edit `/api/config.ts` to control which endpoints use mock data vs real API calls
 ```typescript
 export const API_CONFIG = {
   baseUrl: 'https://api.recruix.com/v1',
+  // baseUrl: 'http://localhost:4000',
   
   candidates: {
     getAll: false,       // false = REAL API, true = MOCK

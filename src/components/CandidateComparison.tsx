@@ -408,7 +408,7 @@ export function CandidateComparison({ candidates, jobTitle, onClose, onSelectCan
             <Sparkles className="size-6 text-white" />
           </div>
           <div>
-            <h3 className="text-gray-900 mb-1">AI-Powered Hiring Recommendations</h3>
+            <h3 className="text-gray-900 mb-1">ensylon Recommendations</h3>
             <p className="text-sm text-gray-600">Based on comprehensive analysis of interview data, skills, and performance</p>
           </div>
         </div>

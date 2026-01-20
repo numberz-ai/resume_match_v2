@@ -2,6 +2,7 @@
 // Set each endpoint to true for mock data, false for real API calls
 
 export const API_CONFIG = {
+  // baseUrl: 'http://localhost:4000',
   baseUrl: 'https://api.recruix.com/v1',
   
   // Candidates API

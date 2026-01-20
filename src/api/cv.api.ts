@@ -1,6 +1,5 @@
-import { apiConfig } from './config';
-
 const CV_BASE_URL = 'https://api.dev.numberz.ai/cv';
+// const CV_BASE_URL = 'http://localhost:4000/cv';
 
 export interface UploadResumeResponse {
   success: boolean;
@@ -25,6 +24,7 @@ export interface UploadResumeResponse {
     profileConfidence: number;
     languages: string[];
     portfolio: Record<string, any>;
+    profile_image?: string;
     education: {
       highest_degree: string;
       degrees: string[];
@@ -52,6 +52,7 @@ export interface SaveResumeDataRequest {
   profileConfidence: string;
   languages: string[];
   portfolio: string | Record<string, any>;
+  profile_image?: string;
   education: {
     highest_degree: string;
     degrees: string[];
@@ -76,7 +77,8 @@ export interface CVSearchCandidate {
   name: string;
   title: string;
   location: string;
-  image: string;
+  image?: string;
+  profile_image?: string;
   skills: string[];
   topSkills: string[];
   profileSummary: string[];
@@ -114,25 +116,61 @@ export async function uploadResume(file: File): Promise<UploadResumeResponse> {
     const response = await fetch(`${CV_BASE_URL}/upload`, {
       method: 'POST',
       body: formData,
+      // Don't set Content-Type header - browser will set it automatically with boundary for FormData
     });
 
     console.log('📥 [CV API] Upload Resume Response:', {
       status: response.status,
       statusText: response.statusText,
-      ok: response.ok
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to upload resume: ${response.statusText}`);
+      // Try to get error details from response body
+      let errorMessage = `Failed to upload resume: ${response.statusText} (${response.status})`;
+      try {
+        const errorData = await response.json();
+        console.error('❌ [CV API] Server Error Response:', errorData);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      } catch (parseError) {
+        // If response is not JSON, try to get text
+        try {
+          const errorText = await response.text();
+          console.error('❌ [CV API] Server Error Text:', errorText);
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        } catch (textError) {
+          console.error('❌ [CV API] Could not parse error response');
+        }
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     console.log('✅ [CV API] Upload Resume Data:', data);
+    console.log('✅ [CV API] Upload Resume Data - candidate_id:', data.candidate_id);
+    
+    // Validate required fields
+    if (!data.candidate_id) {
+      console.error('❌ [CV API] Missing candidate_id in response:', data);
+      throw new Error('Server error: Candidate ID not received in response. Please try again.');
+    }
     
     return data;
   } catch (error) {
     console.error('❌ [CV API] Upload Resume Error:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to upload resume: Unknown error occurred');
   }
 }
 
