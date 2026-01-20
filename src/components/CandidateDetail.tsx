@@ -39,7 +39,7 @@ export function CandidateDetail({ candidateId, candidate: candidateFromProps, on
   
   // Use candidate from props if available, otherwise fallback to mock data
   const candidateFromSource = candidateFromProps || mockCandidates.find(c => c.id === candidateId) || mockCandidates[0];
-  console.log('-----------------', candidateFromSource);
+  
   // Ensure candidate has all required fields with defaults
   const candidate: Candidate = {
     id: candidateFromSource?.id || candidateId,
@@ -181,13 +181,37 @@ export function CandidateDetail({ candidateId, candidate: candidateFromProps, on
         yPosition += sectionSpacing;
       }
 
-      // Education (using candidate data from props)
-      if (candidate.education) {
-        addText('Education', 16, true, '#333333');
-        yPosition += 3;
-        addText(candidate.education, 10);
-        yPosition += sectionSpacing;
-      }
+      // Education (all entries)
+      addText('Education', 16, true, '#333333');
+      yPosition += 3;
+      
+      // Ph.D.
+      addText('Ph.D. in Computer Science', 12, true);
+      yPosition += 2;
+      addText('Stanford University | 2016 - 2020', 10, false, '#666666');
+      yPosition += 2;
+      addText('Dissertation: "Advanced Neural Network Architectures for Natural Language Understanding"', 10);
+      yPosition += 2;
+      addText('Published 8 papers in top-tier conferences (NeurIPS, ICML, CVPR)', 10);
+      yPosition += sectionSpacing;
+      
+      // M.S.
+      addText('M.S. Computer Science', 12, true);
+      yPosition += 2;
+      addText('Carnegie Mellon University, PA | 2014 - 2016', 10, false, '#666666');
+      yPosition += sectionSpacing;
+      
+      // Graduate Certificate
+      addText('Graduate Certificate – Data Science', 12, true);
+      yPosition += 2;
+      addText('UC Berkeley, CA | 2013 - 2014', 10, false, '#666666');
+      yPosition += sectionSpacing;
+      
+      // B.S.
+      addText('B.S. Computer Engineering', 12, true);
+      yPosition += 2;
+      addText('University of Illinois, IL | 2009 - 2013', 10, false, '#666666');
+      yPosition += sectionSpacing;
 
       // Technical Skills (using candidate data from props)
       if (candidate.skills && candidate.skills.length > 0) {
@@ -833,15 +857,36 @@ export function CandidateDetail({ candidateId, candidate: candidateFromProps, on
                   {/* Education */}
                   <div>
                     <h2 className="text-xl text-gray-900 mb-4">Education</h2>
-                    <div>
-                      <h3 className="text-lg text-gray-900">Ph.D. in Computer Science</h3>
-                      <p className="text-sm text-gray-600">Stanford University | 2016 - 2020</p>
-                      <p className="text-sm text-gray-700 mt-1">
-                        Dissertation: "Advanced Neural Network Architectures for Natural Language Understanding"
-                      </p>
-                      <p className="text-sm text-gray-700 mt-1">
-                        Published 8 papers in top-tier conferences (NeurIPS, ICML, CVPR)
-                      </p>
+                    <div className="space-y-5">
+                      {/* Ph.D. */}
+                      <div>
+                        <h3 className="text-lg text-gray-900">Ph.D. in Computer Science</h3>
+                        <p className="text-sm text-gray-600">Stanford University | 2016 - 2020</p>
+                        <p className="text-sm text-gray-700 mt-1">
+                          Dissertation: "Advanced Neural Network Architectures for Natural Language Understanding"
+                        </p>
+                        <p className="text-sm text-gray-700 mt-1">
+                          Published 8 papers in top-tier conferences (NeurIPS, ICML, CVPR)
+                        </p>
+                      </div>
+                      
+                      {/* M.S. */}
+                      <div>
+                        <h3 className="text-lg text-gray-900">M.S. Computer Science</h3>
+                        <p className="text-sm text-gray-600">Carnegie Mellon University, PA | 2014 - 2016</p>
+                      </div>
+                      
+                      {/* Graduate Certificate */}
+                      <div>
+                        <h3 className="text-lg text-gray-900">Graduate Certificate – Data Science</h3>
+                        <p className="text-sm text-gray-600">UC Berkeley, CA | 2013 - 2014</p>
+                      </div>
+                      
+                      {/* B.S. */}
+                      <div>
+                        <h3 className="text-lg text-gray-900">B.S. Computer Engineering</h3>
+                        <p className="text-sm text-gray-600">University of Illinois, IL | 2009 - 2013</p>
+                      </div>
                     </div>
                   </div>
 
@@ -942,20 +987,61 @@ export function CandidateDetail({ candidateId, candidate: candidateFromProps, on
               </Card>
 
               <Card className="p-6">
+                <div className="p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <GraduationCap className="size-5 text-primary" />
                   <h3 className="text-gray-900">Education</h3>
                 </div>
-                <div className="flex gap-4">
-                  <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <GraduationCap className="size-5 text-primary" />
+                <div className="space-y-6">
+                  {/* Ph.D. */}
+                  <div className="flex gap-4">
+                    <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-gray-900">Ph.D. in Computer Science</h4>
+                      <p className="text-sm text-gray-600">Stanford University</p>
+                      <p className="text-sm text-gray-500 mt-1">2016 - 2020</p>
+                      <p className="text-sm text-gray-700 mt-2">Research focus: Machine Learning and Neural Networks</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-gray-900">Ph.D. in Computer Science</h4>
-                    <p className="text-sm text-gray-600">Stanford University</p>
-                    <p className="text-sm text-gray-500 mt-1">2016 - 2020</p>
-                    <p className="text-sm text-gray-700 mt-2">Research focus: Machine Learning and Neural Networks</p>
+                  
+                  {/* M.S. */}
+                  <div className="flex gap-4">
+                    <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-gray-900">M.S. Computer Science</h4>
+                      <p className="text-sm text-gray-600">Carnegie Mellon University, PA</p>
+                      <p className="text-sm text-gray-500 mt-1">2014 - 2016</p>
+                    </div>
                   </div>
+                  
+                  {/* Graduate Certificate */}
+                  <div className="flex gap-4">
+                    <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-gray-900">Graduate Certificate – Data Science</h4>
+                      <p className="text-sm text-gray-600">UC Berkeley, CA</p>
+                      <p className="text-sm text-gray-500 mt-1">2013 - 2014</p>
+                    </div>
+                  </div>
+                  
+                  {/* B.S. */}
+                  <div className="flex gap-4">
+                    <div className="size-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-gray-900">B.S. Computer Engineering</h4>
+                      <p className="text-sm text-gray-600">University of Illinois, IL</p>
+                      <p className="text-sm text-gray-500 mt-1">2009 - 2013</p>
+                    </div>
+                  </div>
+                </div>
                 </div>
               </Card>
             </TabsContent>

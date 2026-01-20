@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Home, Users, Shield, Settings as SettingsIcon, ChevronLeft, ChevronRight, Brain, Calendar, BarChart3, Mail, Briefcase, TrendingUp } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Logo } from './Logo';
 
 interface SidebarProps {
   activeView?: string;
@@ -91,9 +92,7 @@ export function Sidebar({
         {/* Logo */}
         <div className="px-4 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="size-8 bg-primary rounded flex items-center justify-center">
-              <span className="text-base font-medium text-white">R</span>
-            </div>
+            <Logo size={32} className="flex-shrink-0" />
             <div>
               <h1 className="text-base font-medium text-foreground">RecruiX</h1>
               <p className="text-xs text-muted-foreground">Powered by Ensylon</p>

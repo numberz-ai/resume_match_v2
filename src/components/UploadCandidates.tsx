@@ -943,34 +943,33 @@ export function UploadCandidates() {
                     )}
                   </div>
 
-                  {/* AI-Generated Profile Summary */}
-                  <Card className="p-6 bg-primary/5 border-primary/20">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Users className="size-5 text-primary" />
-                      <h3 className="text-lg font-semibold text-gray-900">AI-Generated Profile Summary</h3>
-                    </div>
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">No summary available</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        BIO <span className="text-red-500">*</span>
-                      </Label>
-                      {editMode ? (
-                        <Textarea
-                          value={selectedCandidate.formData.bio || ''}
-                          onChange={(e) => handleFormDataChange('bio', e.target.value)}
-                          rows={4}
-                          className="text-base font-medium"
-                        />
-                      ) : (
-                        <p className="text-base font-medium text-gray-900 mt-1 whitespace-pre-wrap">{selectedCandidate.formData.bio || 'N/A'}</p>
-                      )}
-                    </div>
-                    <div className="mt-4 text-right">
-                      <p className="text-xs text-gray-500">Powered by ensylon</p>
-                </div>
-                  </Card>
+                  {/* AI-Generated Profile Summary - Only show if bio exists or in edit mode */}
+                  {(editMode || (selectedCandidate.formData.bio && selectedCandidate.formData.bio.trim() !== '')) && (
+                    <Card className="p-6 bg-primary/5 border-primary/20">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="size-5 text-primary" />
+                        <h3 className="text-lg font-semibold text-gray-900">AI-Generated Profile Summary</h3>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                          BIO <span className="text-red-500">*</span>
+                        </Label>
+                        {editMode ? (
+                          <Textarea
+                            value={selectedCandidate.formData.bio || ''}
+                            onChange={(e) => handleFormDataChange('bio', e.target.value)}
+                            rows={4}
+                            className="text-base font-medium"
+                          />
+                        ) : (
+                          <p className="text-base font-medium text-gray-900 mt-1 whitespace-pre-wrap">{selectedCandidate.formData.bio}</p>
+                        )}
+                      </div>
+                      <div className="mt-4 text-right">
+                        <p className="text-xs text-gray-500">Powered by ensylon</p>
+                      </div>
+                    </Card>
+                  )}
               </div>
 
                 {/* Footer Actions */}
