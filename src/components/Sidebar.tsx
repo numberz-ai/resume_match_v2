@@ -1,3 +1,4 @@
+import React from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Home, Users, Shield, Settings as SettingsIcon, ChevronLeft, ChevronRight, Brain, Calendar, BarChart3, Mail, Briefcase, TrendingUp } from 'lucide-react';
@@ -95,7 +96,7 @@ export function Sidebar({
             </div>
             <div>
               <h1 className="text-base font-medium text-foreground">RecruiX</h1>
-              <p className="text-xs text-muted-foreground">AI-powered hiring</p>
+              <p className="text-xs text-muted-foreground">Powered by Ensylon</p>
             </div>
           </div>
         </div>

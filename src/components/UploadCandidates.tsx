@@ -7,9 +7,10 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Upload, FileText, CheckCircle2, Loader2, X, ArrowLeft, Users, Edit, Save } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Loader2, X, ArrowLeft, Users, Edit, Save, Linkedin, Github } from 'lucide-react';
 import { uploadResume, saveResumeData, type UploadResumeResponse, type SaveResumeDataRequest } from '../api/cv.api';
 import { Alert, AlertDescription } from './ui/alert';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 
 type Step = 'upload' | 'review' | 'complete';
 
@@ -81,32 +82,48 @@ export function UploadCandidates() {
     try {
       const response = await uploadResume(file);
       
+      // Validate that candidate_id exists
+      if (!response.candidate_id) {
+        console.error('❌ [UploadCandidates] Missing candidate_id in response:', response);
+        setError('Server error: Candidate ID not received. Please try uploading again.');
+        setUploading(false);
+        return;
+      }
+      
       // Initialize form data with extracted data
       const formData: Partial<SaveResumeDataRequest> = {
-        name: response.extracted_data.name,
-        title: response.extracted_data.title,
+        name: response.extracted_data.name || '',
+        title: response.extracted_data.title || '',
         bio: response.extracted_data.bio || '',
-        current_company: response.extracted_data.current_company,
-        emails: response.extracted_data.emails,
-        skills: response.extracted_data.skills,
-        experience: response.extracted_data.experience,
-        location_city: response.extracted_data.location_city,
-        location_country: response.extracted_data.location_country,
-        availability: response.extracted_data.availability,
-        workPreference: response.extracted_data.workPreference,
-        expectedSalary: response.extracted_data.expectedSalary.toString(),
-        noticePeriod: response.extracted_data.noticePeriod,
-        profileConfidence: response.extracted_data.profileConfidence.toString() + '%',
+        current_company: response.extracted_data.current_company || '',
+        emails: response.extracted_data.emails || [],
+        skills: response.extracted_data.skills || [],
+        experience: response.extracted_data.experience ?? 0,
+        location_city: response.extracted_data.location_city || '',
+        location_country: response.extracted_data.location_country || '',
+        availability: response.extracted_data.availability || '',
+        workPreference: response.extracted_data.workPreference || '',
+        expectedSalary: response.extracted_data.expectedSalary != null 
+          ? response.extracted_data.expectedSalary.toString() 
+          : '',
+        noticePeriod: response.extracted_data.noticePeriod || null,
+        profileConfidence: response.extracted_data.profileConfidence != null
+          ? response.extracted_data.profileConfidence.toString().replace(/%/g, '') + '%'
+          : '0%',
         languages: response.extracted_data.languages || [],
-        portfolio: typeof response.extracted_data.portfolio === 'object' 
-          ? JSON.stringify(response.extracted_data.portfolio) 
-          : response.extracted_data.portfolio || '',
-        education: response.extracted_data.education,
+        portfolio: response.extracted_data.portfolio || {},
+        profile_image: response.extracted_data.profile_image || '',
+        education: response.extracted_data.education || {
+          highest_degree: '',
+          degrees: [],
+          schools: [],
+          graduation_year: null,
+        },
       };
 
       const candidateData: CandidateData = {
         candidateId: response.candidate_id,
-        fileName: response.file_name,
+        fileName: response.file_name || file.name,
         extractedData: response.extracted_data,
         formData,
       };
@@ -115,7 +132,18 @@ export function UploadCandidates() {
       setSelectedCandidateIndex(candidates.length);
       setCurrentStep('review');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload resume');
+      let errorMessage = 'Failed to upload resume';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        // Make backend errors more user-friendly
+        if (errorMessage.includes('No such file or directory') || errorMessage.includes('static')) {
+          errorMessage = 'Server configuration error: Upload directory not found. Please contact the administrator.';
+        } else if (errorMessage.includes('500') || errorMessage.includes('INTERNAL SERVER ERROR')) {
+          errorMessage = 'Server error occurred. Please try again or contact support if the issue persists.';
+        }
+      }
+      setError(errorMessage);
+      console.error('Upload error:', err);
     } finally {
       setUploading(false);
       setSelectedFile(null);
@@ -131,11 +159,25 @@ export function UploadCandidates() {
       return;
     }
 
+    // Validate candidateId exists
+    if (!candidate.candidateId) {
+      setError('Error: Candidate ID is missing. Please upload the resume again.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
     try {
-      await saveResumeData(candidate.candidateId, candidate.formData as SaveResumeDataRequest);
+      // Prepare portfolio for API (convert object to string if needed, or keep as object)
+      const saveData: SaveResumeDataRequest = {
+        ...candidate.formData,
+        portfolio: typeof candidate.formData.portfolio === 'object' && candidate.formData.portfolio !== null
+          ? candidate.formData.portfolio
+          : (candidate.formData.portfolio || ''),
+      } as SaveResumeDataRequest;
+      
+      await saveResumeData(candidate.candidateId, saveData);
       setCurrentStep('complete');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save candidate');
@@ -241,7 +283,7 @@ export function UploadCandidates() {
               }`}>
                 Verify Details
               </span>
-            </div>
+      </div>
 
             {/* Connector Line */}
             <div className={`h-0.5 w-16 ${
@@ -267,8 +309,8 @@ export function UploadCandidates() {
                 Add to Database
               </span>
             </div>
-          </div>
-        </div>
+                  </div>
+                  </div>
 
         {/* Error Alert */}
         {error && (
@@ -293,9 +335,9 @@ export function UploadCandidates() {
                   <p className="text-gray-700">
                     Upload resumes individually or in bulk — our advanced AI instantly extracts candidate information, skills, and experience.
                   </p>
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
 
             {/* Upload Section */}
             <Card className="p-8">
@@ -375,19 +417,19 @@ export function UploadCandidates() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Panel: Review & Verify */}
             <div className="lg:col-span-1">
-              <Card className="p-6">
+            <Card className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Verify</h2>
                 <p className="text-sm text-gray-600 mb-6">
-                  Our AI has intelligently extracted candidate information from the uploaded resumes. Please review each profile carefully and make any necessary adjustments before saving to your database.
+                Ensylons AI Engine has intelligently extracted candidate information from the uploaded resumes. Please review each profile carefully and make any necessary adjustments before saving to your talent pool.
                 </p>
 
                 <div className="space-y-3">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     {candidates.length} {candidates.length === 1 ? 'CANDIDATE' : 'CANDIDATES'} FOUND
-                  </div>
+              </div>
                   {candidates.map((candidate, index) => (
                     <div
-                      key={candidate.candidateId}
+                      key={candidate.candidateId || `candidate-${index}`}
                       className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                         index === selectedCandidateIndex
                           ? 'bg-primary/5 border-primary/30'
@@ -414,11 +456,11 @@ export function UploadCandidates() {
                         >
                           <X className="size-4" />
                         </Button>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </Card>
+                  </div>
+                ))}
+              </div>
+            </Card>
             </div>
 
             {/* Right Panel: Candidate Profile */}
@@ -428,20 +470,54 @@ export function UploadCandidates() {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-1">Candidate Profile</h2>
                     <p className="text-sm text-gray-600">AI-extracted information ready for review</p>
-                  </div>
+              </div>
                   {!editMode && (
-                    <Button
+                <Button
                       variant="outline"
                       onClick={() => setEditMode(true)}
                       className="border-primary text-primary hover:bg-primary/5"
-                    >
+                >
                       <Edit className="size-4 mr-2" />
                       Edit Details
-                    </Button>
+                </Button>
                   )}
-                </div>
+              </div>
 
                 <div className="space-y-6">
+                  {/* Profile Image */}
+                  {(editMode || selectedCandidate.formData.profile_image) && (
+                    <div className="flex items-center gap-4 pb-4 border-b">
+                      <Avatar className="size-20 border-2 border-gray-200">
+                        {selectedCandidate.formData.profile_image ? (
+                          <AvatarImage 
+                            src={selectedCandidate.formData.profile_image} 
+                            alt={selectedCandidate.formData.name || 'Candidate'}
+                          />
+                        ) : null}
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                          {selectedCandidate.formData.name?.charAt(0).toUpperCase() || 'C'}
+                        </AvatarFallback>
+                      </Avatar>
+                      {editMode && (
+                        <div className="flex-1">
+                          <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                            PROFILE IMAGE (Base64)
+                          </Label>
+                          <Textarea
+                            value={selectedCandidate.formData.profile_image || ''}
+                            onChange={(e) => handleFormDataChange('profile_image', e.target.value)}
+                            placeholder="Base64 image string (data:image/...;base64,...)"
+                            rows={3}
+                            className="text-base font-medium font-mono text-xs"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Profile image in base64 format
+              </p>
+            </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Basic Information */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -457,7 +533,7 @@ export function UploadCandidates() {
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.name || 'N/A'}</p>
                       )}
-                    </div>
+                </div>
                     <div>
                       <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
                         ROLE <span className="text-red-500">*</span>
@@ -471,7 +547,7 @@ export function UploadCandidates() {
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.title || 'N/A'}</p>
                       )}
-                    </div>
+                </div>
                     <div>
                       <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
                         EXPERIENCE <span className="text-red-500">*</span>
@@ -486,7 +562,7 @@ export function UploadCandidates() {
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.experience || 0} years</p>
                       )}
-                    </div>
+                </div>
                     <div>
                       <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
                         CURRENT COMPANY <span className="text-red-500">*</span>
@@ -500,7 +576,7 @@ export function UploadCandidates() {
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.current_company || 'N/A'}</p>
                       )}
-                    </div>
+                </div>
                     <div>
                       <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
                         LOCATION <span className="text-red-500">*</span>
@@ -519,7 +595,7 @@ export function UploadCandidates() {
                             onChange={(e) => handleFormDataChange('location_country', e.target.value)}
                             className="text-base font-medium"
                           />
-                        </div>
+              </div>
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">
                           {selectedCandidate.formData.location_city || 'N/A'}, {selectedCandidate.formData.location_country || 'N/A'}
@@ -540,7 +616,7 @@ export function UploadCandidates() {
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.emails?.[0] || 'N/A'}</p>
                       )}
-                    </div>
+                  </div>
                     <div>
                       <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
                         EDUCATION <span className="text-red-500">*</span>
@@ -564,79 +640,246 @@ export function UploadCandidates() {
                           {selectedCandidate.formData.education?.graduation_year && ` (${selectedCandidate.formData.education.graduation_year})`}
                         </p>
                       )}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        PORTFOLIO <span className="text-red-500">*</span>
-                      </Label>
-                      {editMode ? (
-                        <Input
-                          value={typeof selectedCandidate.formData.portfolio === 'string' ? selectedCandidate.formData.portfolio : ''}
-                          onChange={(e) => handleFormDataChange('portfolio', e.target.value)}
-                          className="text-base font-medium"
-                        />
-                      ) : (
-                        <p className="text-base font-medium text-gray-900 mt-1">{typeof selectedCandidate.formData.portfolio === 'string' ? selectedCandidate.formData.portfolio || 'N/A' : 'N/A'}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        AVAILABILITY <span className="text-red-500">*</span>
-                      </Label>
-                      {editMode ? (
-                        <Select
-                          value={selectedCandidate.formData.availability || ''}
-                          onValueChange={(value) => handleFormDataChange('availability', value)}
-                        >
-                          <SelectTrigger className="text-base font-medium">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Actively Looking">Actively Looking</SelectItem>
-                            <SelectItem value="Open to Offers">Open to Offers</SelectItem>
-                            <SelectItem value="Not Looking">Not Looking</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.availability || 'N/A'}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        WORK PREFERENCE <span className="text-red-500">*</span>
-                      </Label>
-                      {editMode ? (
-                        <Select
-                          value={selectedCandidate.formData.workPreference || ''}
-                          onValueChange={(value) => handleFormDataChange('workPreference', value)}
-                        >
-                          <SelectTrigger className="text-base font-medium">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="On-site">On-site</SelectItem>
-                            <SelectItem value="Remote">Remote</SelectItem>
-                            <SelectItem value="Hybrid">Hybrid</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.workPreference || 'N/A'}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        LANGUAGES <span className="text-red-500">*</span>
-                      </Label>
-                      {editMode ? (
-                        <Input
-                          value={selectedCandidate.formData.languages?.join(', ') || ''}
-                          onChange={(e) => handleFormDataChange('languages', e.target.value.split(',').map(l => l.trim()))}
-                          className="text-base font-medium"
-                        />
-                      ) : (
-                        <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.languages?.join(', ') || 'N/A'}</p>
-                      )}
-                    </div>
+                </div>
+                    {(() => {
+                      // Helper function to check if portfolio has content
+                      const hasPortfolioContent = (portfolio: any): boolean => {
+                        if (!portfolio) return false;
+                        if (typeof portfolio === 'string' && portfolio.trim() === '') return false;
+                        if (typeof portfolio === 'object') {
+                          // Check if it's an empty object
+                          if (Object.keys(portfolio).length === 0) return false;
+                          // Check if all values are empty/null/undefined
+                          return Object.values(portfolio).some(value => {
+                            if (value === null || value === undefined) return false;
+                            if (typeof value === 'string' && value.trim() === '') return false;
+                            return true;
+                          });
+                        }
+                        return true;
+                      };
+
+                      const portfolio = selectedCandidate.formData.portfolio;
+                      const hasContent = hasPortfolioContent(portfolio);
+
+                      // Only show portfolio if it has content or we're in edit mode
+                      if (!editMode && !hasContent) return null;
+
+                      return (
+                        <div>
+                          <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                            PORTFOLIO <span className="text-red-500">*</span>
+                          </Label>
+                          {editMode ? (
+                            <Textarea
+                              value={(() => {
+                                const portfolio = selectedCandidate.formData.portfolio;
+                                if (typeof portfolio === 'string') {
+                                  try {
+                                    // Try to parse if it's JSON string
+                                    const parsed = JSON.parse(portfolio);
+                                    return typeof parsed === 'object' ? JSON.stringify(parsed, null, 2) : portfolio;
+                                  } catch {
+                                    return portfolio;
+                                  }
+                                }
+                                return typeof portfolio === 'object' ? JSON.stringify(portfolio, null, 2) : '';
+                              })()}
+                              onChange={(e) => {
+                                try {
+                                  const parsed = JSON.parse(e.target.value);
+                                  handleFormDataChange('portfolio', parsed);
+                                } catch {
+                                  handleFormDataChange('portfolio', e.target.value);
+                                }
+                              }}
+                              rows={4}
+                              className="text-base font-medium font-mono text-sm"
+                              placeholder="Enter portfolio as JSON object or plain text"
+                            />
+                          ) : (
+                            <div className="mt-1">
+                              {(() => {
+                                const portfolio = selectedCandidate.formData.portfolio;
+                                if (!portfolio) return null;
+                                
+                                // Try to parse if it's a JSON string
+                                let portfolioObj: Record<string, any> | null = null;
+                                if (typeof portfolio === 'string') {
+                                  try {
+                                    portfolioObj = JSON.parse(portfolio);
+                                  } catch {
+                                    // If not valid JSON, display as text if not empty
+                                    if (portfolio.trim() === '') return null;
+                                    return <p className="text-base font-medium text-gray-900">{portfolio}</p>;
+                                  }
+                                } else if (typeof portfolio === 'object') {
+                                  portfolioObj = portfolio;
+                                }
+                                
+                                // Display as formatted object with links if available
+                                if (portfolioObj && typeof portfolioObj === 'object') {
+                                  const entries = Object.entries(portfolioObj).filter(([key, value]) => {
+                                    // Filter out empty values
+                                    if (value === null || value === undefined) return false;
+                                    if (typeof value === 'string' && value.trim() === '') return false;
+                                    return true;
+                                  });
+
+                                  if (entries.length === 0) return null;
+
+                                  return (
+                                    <div className="space-y-2">
+                                      {entries.map(([key, value]) => (
+                                        <div key={key} className="text-sm">
+                                          <span className="font-semibold text-gray-700 capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                                          {typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://')) ? (
+                                            <a href={value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                              {value}
+                                            </a>
+                                          ) : (
+                                            <span className="text-gray-900">{String(value)}</span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                }
+                                
+                                // If it's a non-empty string, display it
+                                if (typeof portfolio === 'string' && portfolio.trim() !== '') {
+                                  return <p className="text-base font-medium text-gray-900">{portfolio}</p>;
+                                }
+                                
+                                return null;
+                              })()}
+                            </div>
+                          )}
+                  </div>
+                      );
+                    })()}
+                    {(() => {
+                      // Extract LinkedIn and GitHub from portfolio if they exist
+                      const portfolio = selectedCandidate.formData.portfolio;
+                      let linkedIn: string | null = null;
+                      let github: string | null = null;
+
+                      if (portfolio && typeof portfolio === 'object') {
+                        const portfolioObj = portfolio as Record<string, any>;
+                        // Check for various possible keys
+                        linkedIn = portfolioObj.linkedin || portfolioObj.linkedIn || portfolioObj['linked-in'] || null;
+                        github = portfolioObj.github || portfolioObj.GitHub || portfolioObj['git-hub'] || null;
+                      } else if (portfolio && typeof portfolio === 'string') {
+                        try {
+                          const parsed = JSON.parse(portfolio);
+                          if (typeof parsed === 'object') {
+                            linkedIn = parsed.linkedin || parsed.linkedIn || parsed['linked-in'] || null;
+                            github = parsed.github || parsed.GitHub || parsed['git-hub'] || null;
+                          }
+                        } catch {
+                          // Not JSON, skip
+                        }
+                      }
+
+                      // Only show if at least one exists
+                      if (!linkedIn && !github) return null;
+
+                      return (
+                        <div>
+                          <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                            SOCIAL LINKS
+                          </Label>
+                          <div className="flex flex-wrap gap-3 mt-1">
+                            {linkedIn && (
+                              <a
+                                href={linkedIn.startsWith('http') ? linkedIn : `https://${linkedIn}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                <Linkedin className="size-4" />
+                                <span className="text-sm font-medium">LinkedIn</span>
+                              </a>
+                            )}
+                            {github && (
+                              <a
+                                href={github.startsWith('http') ? github : `https://${github}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                              >
+                                <Github className="size-4" />
+                                <span className="text-sm font-medium">GitHub</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(editMode || selectedCandidate.formData.availability) && (
+                      <div>
+                        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                          AVAILABILITY <span className="text-red-500">*</span>
+                        </Label>
+                        {editMode ? (
+                          <Select
+                            value={selectedCandidate.formData.availability || ''}
+                            onValueChange={(value) => handleFormDataChange('availability', value)}
+                          >
+                            <SelectTrigger className="text-base font-medium">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Actively Looking">Actively Looking</SelectItem>
+                              <SelectItem value="Open to Offers">Open to Offers</SelectItem>
+                              <SelectItem value="Not Looking">Not Looking</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.availability || 'N/A'}</p>
+                        )}
+                  </div>
+                    )}
+                    {(editMode || selectedCandidate.formData.workPreference) && (
+                      <div>
+                        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                          WORK PREFERENCE <span className="text-red-500">*</span>
+                        </Label>
+                        {editMode ? (
+                          <Select
+                            value={selectedCandidate.formData.workPreference || ''}
+                            onValueChange={(value) => handleFormDataChange('workPreference', value)}
+                          >
+                            <SelectTrigger className="text-base font-medium">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="On-site">On-site</SelectItem>
+                              <SelectItem value="Remote">Remote</SelectItem>
+                              <SelectItem value="Hybrid">Hybrid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.workPreference || 'N/A'}</p>
+                        )}
+                </div>
+                    )}
+                    {(editMode || (selectedCandidate.formData.languages && selectedCandidate.formData.languages.length > 0)) && (
+                      <div>
+                        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                          LANGUAGES <span className="text-red-500">*</span>
+                        </Label>
+                        {editMode ? (
+                          <Input
+                            value={selectedCandidate.formData.languages?.join(', ') || ''}
+                            onChange={(e) => handleFormDataChange('languages', e.target.value.split(',').map(l => l.trim()))}
+                            className="text-base font-medium"
+                          />
+                        ) : (
+                          <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.languages?.join(', ') || 'N/A'}</p>
+                        )}
+                  </div>
+                    )}
                     <div>
                       <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
                         NOTICE PERIOD <span className="text-red-500">*</span>
@@ -650,28 +893,32 @@ export function UploadCandidates() {
                       ) : (
                         <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.noticePeriod || 'N/A'}</p>
                       )}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        EXPECTED SALARY <span className="text-red-500">*</span>
-                      </Label>
-                      {editMode ? (
-                        <Input
-                          value={selectedCandidate.formData.expectedSalary || ''}
-                          onChange={(e) => handleFormDataChange('expectedSalary', e.target.value)}
-                          className="text-base font-medium"
-                        />
-                      ) : (
-                        <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.expectedSalary || 'N/A'}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
-                        PROFILE CONFIDENCE <span className="text-red-500">*</span>
-                      </Label>
-                      <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.profileConfidence || '0%'} (unverified)</p>
-                    </div>
                   </div>
+                    {(editMode || selectedCandidate.formData.expectedSalary) && (
+                      <div>
+                        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                          EXPECTED SALARY <span className="text-red-500">*</span>
+                        </Label>
+                        {editMode ? (
+                          <Input
+                            value={selectedCandidate.formData.expectedSalary || ''}
+                            onChange={(e) => handleFormDataChange('expectedSalary', e.target.value)}
+                            className="text-base font-medium"
+                          />
+                        ) : (
+                          <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.expectedSalary || 'N/A'}</p>
+                        )}
+                  </div>
+                    )}
+                    {(editMode || selectedCandidate.formData.profileConfidence) && (
+                      <div>
+                        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                          PROFILE CONFIDENCE <span className="text-red-500">*</span>
+                        </Label>
+                        <p className="text-base font-medium text-gray-900 mt-1">{selectedCandidate.formData.profileConfidence || '0%'} (unverified)</p>
+                  </div>
+                    )}
+                </div>
 
                   {/* Skills */}
                   <div>
@@ -689,9 +936,9 @@ export function UploadCandidates() {
                       <div className="flex flex-wrap gap-2 mt-1">
                         {selectedCandidate.formData.skills?.map((skill, index) => (
                           <Badge key={index} className="bg-primary/10 text-primary border-primary/20 text-sm font-medium">
-                            {skill}
-                          </Badge>
-                        ))}
+                        {skill}
+                      </Badge>
+                    ))}
                       </div>
                     )}
                   </div>
@@ -721,10 +968,10 @@ export function UploadCandidates() {
                       )}
                     </div>
                     <div className="mt-4 text-right">
-                      <p className="text-xs text-gray-500">Powered by numberz.ai</p>
-                    </div>
-                  </Card>
+                      <p className="text-xs text-gray-500">Powered by ensylon</p>
                 </div>
+                  </Card>
+              </div>
 
                 {/* Footer Actions */}
                 <div className="flex justify-between mt-8 pt-6 border-t">
@@ -783,8 +1030,8 @@ export function UploadCandidates() {
                   </p>
                 </div>
                 <div className="flex gap-4 mt-4">
-                  <Button
-                    variant="outline"
+              <Button
+                variant="outline"
                     onClick={() => {
                       setCandidates([]);
                       setCurrentStep('upload');
@@ -792,13 +1039,13 @@ export function UploadCandidates() {
                     }}
                   >
                     Add Another Candidate
-                  </Button>
-                  <Button
+              </Button>
+              <Button
                     onClick={() => navigate('/candidates')}
                     className="bg-primary hover:bg-primary/90"
-                  >
+              >
                     View Candidates
-                  </Button>
+              </Button>
                 </div>
               </div>
             </Card>

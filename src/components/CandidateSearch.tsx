@@ -120,12 +120,8 @@ export function CandidateSearch({
   };
 
   const clearSearch = () => {
-    setSearchQuery('');
-    // Instantly trigger default query reload (no loader in search component)
-    if (onSearchResults) {
-      // Pass empty string for query - parent will handle reloading silently
-      onSearchResults([], '');
-    }
+    // Reload the page to reset everything
+    window.location.reload();
   };
 
   const handleQuickSearch = (term: string) => {

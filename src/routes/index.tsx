@@ -1,3 +1,4 @@
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Dashboard } from '../components/Dashboard';
 import { CandidateList } from '../components/CandidateListRefactored';
@@ -15,13 +16,16 @@ import { PostJobView } from '../components/PostJobView';
 import { JobInterviewView } from '../components/JobInterviewView';
 import { CandidateInterviewNotes } from '../components/CandidateInterviewNotes';
 import { UploadCandidates } from '../components/UploadCandidates';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 // Route Wrappers with proper param handling
 function CandidateDetailRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  return <CandidateDetail candidateId={id || ''} onClose={() => navigate('/candidates')} />;
+  const location = useLocation();
+  // Get candidate data from location state if passed
+  const candidateData = location.state?.candidate || null;
+  return <CandidateDetail candidateId={id || ''} candidate={candidateData} onClose={() => navigate('/candidates')} />;
 }
 
 function JobDetailRoute() {
@@ -79,7 +83,7 @@ export function AppRoutes() {
         element={
           <CandidateList 
             selectedCandidateId={null} 
-            onSelectCandidate={(id) => navigate(`/candidates/${id}`)}
+            onSelectCandidate={(id, candidate) => navigate(`/candidates/${id}`, { state: { candidate } })}
             onNavigateToAddCandidate={() => navigate('/upload-resume')}
           />
         } 

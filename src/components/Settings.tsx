@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -934,7 +934,7 @@ export function Settings() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-gray-900">Token Usage & Efficiency</h3>
                   <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300">
-                    Optimized by numberz.ai
+                    Optimized by ensylon
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
@@ -954,7 +954,7 @@ export function Settings() {
                   <div className="p-4 bg-gray-50 rounded border border-gray-200">
                     <p className="text-xs text-gray-600 mb-1">Tokens Saved</p>
                     <p className="text-2xl text-[#118B80] mb-1">847.5K</p>
-                    <p className="text-xs text-gray-500">via numberz.ai optimization</p>
+                    <p className="text-xs text-gray-500">via ensylon optimization</p>
                   </div>
 
                   <div className="p-4 bg-gray-50 rounded border border-gray-200">
@@ -976,14 +976,14 @@ export function Settings() {
                   </p>
                 </div>
 
-                {/* numberz.ai Optimization Details */}
+                {/* ensylon Optimization Details */}
                 <div className="p-4 bg-gray-50 rounded border border-gray-200">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="size-10 bg-[#118B80] rounded flex items-center justify-center flex-shrink-0">
                       <Zap className="size-5 text-white" />
                     </div>
                     <div>
-                      <h4 className="text-gray-900 mb-1">Powered by numberz.ai Intelligence</h4>
+                      <h4 className="text-gray-900 mb-1">Powered by ensylon Intelligence</h4>
                       <p className="text-xs text-gray-600">
                         Our AI optimization reduces token usage by 67% on average through intelligent caching, prompt optimization, and smart model selection
                       </p>

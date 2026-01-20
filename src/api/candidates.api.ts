@@ -29,7 +29,7 @@ const convertCVSearchToCandidate = (cvCandidate: CVSearchCandidate): Candidate =
     experience: cvCandidate.years_of_experience,
     matchScore: cvCandidate.matchScore,
     status: 'new',
-    avatar: cvCandidate.image || '',
+    avatar: cvCandidate.profile_image || cvCandidate.image || '',
     appliedDate: new Date().toISOString(),
     education: cvCandidate.profileSummary?.[0] || '',
     skills: cvCandidate.skills || [],
