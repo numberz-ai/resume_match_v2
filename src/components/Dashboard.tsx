@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mockCandidates, mockJobs } from '../data/mockData';
 import { CandidateSearch } from './CandidateSearch';
+import { searchCandidates } from '../api/cv.api';
+import { getTotalCandidatesCount, updateTotalCandidatesCount } from '../utils/candidateCount';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -27,6 +29,37 @@ interface DashboardProps {
 
 export function Dashboard({ onNavigateToCandidates }: DashboardProps) {
   const [showAllReminders, setShowAllReminders] = useState(false);
+  const [totalCandidates, setTotalCandidates] = useState(getTotalCandidatesCount());
+  
+  // Fetch candidates count on mount
+  useEffect(() => {
+    const fetchCandidatesCount = async () => {
+      try {
+        const response = await searchCandidates('');
+        if (response.success && response.response_data) {
+          const count = response.response_data.length;
+          updateTotalCandidatesCount(count);
+          setTotalCandidates(count);
+        }
+      } catch (error) {
+        console.error('Error fetching candidates count:', error);
+        // Use stored count if API fails
+        setTotalCandidates(getTotalCandidatesCount());
+      }
+    };
+
+    fetchCandidatesCount();
+
+    // Listen for candidate count updates from other components
+    const handleCountUpdate = (event: CustomEvent) => {
+      setTotalCandidates(event.detail.count);
+    };
+    window.addEventListener('candidateCountUpdated', handleCountUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('candidateCountUpdated', handleCountUpdate as EventListener);
+    };
+  }, []);
   
   interface Reminder {
     id: string;
@@ -125,7 +158,7 @@ export function Dashboard({ onNavigateToCandidates }: DashboardProps) {
   const stats = [
     {
       label: 'Total Candidates',
-      value: mockCandidates.length,
+      value: totalCandidates,
       change: '+12%',
       icon: Users,
       color: 'text-green-600',
@@ -197,6 +230,7 @@ export function Dashboard({ onNavigateToCandidates }: DashboardProps) {
       <CandidateSearch 
         redirectOnSearch={true}
         onNavigateToCandidates={onNavigateToCandidates}
+        showQuickSearch={false}
       />
 
       {/* AI Insights */}

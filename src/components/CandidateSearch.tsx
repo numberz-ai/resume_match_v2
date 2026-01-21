@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { searchCandidates, type CVSearchCandidate } from '../api';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -10,13 +10,15 @@ interface CandidateSearchProps {
   redirectOnSearch?: boolean;
   onNavigateToCandidates?: () => void;
   initialQuery?: string;
+  showQuickSearch?: boolean;
 }
 
 export function CandidateSearch({ 
   onSearchResults, 
   redirectOnSearch = false,
   onNavigateToCandidates,
-  initialQuery = ''
+  initialQuery = '',
+  showQuickSearch = true
 }: CandidateSearchProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [isSearching, setIsSearching] = useState(false);
@@ -36,8 +38,10 @@ export function CandidateSearch({
     };
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
+  const handleSearch = async (queryOverride?: string) => {
+    const queryToUse = queryOverride !== undefined ? queryOverride : searchQuery;
+    
+    if (!queryToUse.trim()) {
       if (onSearchResults) {
         onSearchResults([], '');
       }
@@ -53,7 +57,12 @@ export function CandidateSearch({
     // Create new AbortController for this request
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    const currentQuery = searchQuery; // Capture current query value
+    const currentQuery = queryToUse; // Use the query parameter or state value
+
+    // Update state immediately if using override
+    if (queryOverride !== undefined) {
+      setSearchQuery(queryOverride);
+    }
 
     setIsSearching(true);
     
@@ -75,6 +84,9 @@ export function CandidateSearch({
           console.log('📦 Storing search results in sessionStorage');
           sessionStorage.setItem('searchResults', JSON.stringify(response.response_data));
           sessionStorage.setItem('searchQuery', currentQuery);
+          // Store a flag to indicate we're coming from home page search
+          // This will prevent filters from resetting
+          sessionStorage.setItem('fromHomePageSearch', 'true');
           console.log('🔄 Navigating to candidates page');
           // Use setTimeout to ensure sessionStorage is written before navigation
           setTimeout(() => {
@@ -125,10 +137,8 @@ export function CandidateSearch({
   };
 
   const handleQuickSearch = (term: string) => {
-    setSearchQuery(term);
-    setTimeout(() => {
-      handleSearch();
-    }, 100);
+    // Immediately trigger search with the term, without waiting for state update
+    handleSearch(term);
   };
 
   return (
@@ -168,21 +178,23 @@ export function CandidateSearch({
       </div>
 
       {/* Quick Search Pills */}
-      <div className="flex flex-wrap gap-2">
-        <span className="text-xs text-muted-foreground self-center mr-1">Quick search:</span>
-        {['Machine Learning', 'Senior Developer', 'Python', 'React', 'Leadership', 'Product Designer'].map((term) => (
-          <Button
-            key={term}
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs hover:bg-muted hover:border-primary/50 transition-colors"
-            onClick={() => handleQuickSearch(term)}
-            disabled={isSearching}
-          >
-            {term}
-          </Button>
-        ))}
-      </div>
+      {showQuickSearch && (
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs text-muted-foreground self-center mr-1">Quick search:</span>
+          {['Machine Learning', 'Senior Developer', 'Python', 'React', 'Leadership', 'Product Designer'].map((term) => (
+            <Button
+              key={term}
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs hover:bg-muted hover:border-primary/50 transition-colors"
+              onClick={() => handleQuickSearch(term)}
+              disabled={isSearching}
+            >
+              {term}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

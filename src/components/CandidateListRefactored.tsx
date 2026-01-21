@@ -4,6 +4,7 @@ import { searchCandidates } from '../api/cv.api';
 import { candidatesApi, type Candidate } from '../api/candidates.api';
 import { CandidateSearch } from './CandidateSearch';
 import { useCandidatesStore } from '../store/candidatesStore';
+import { updateTotalCandidatesCount } from '../utils/candidateCount';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -151,12 +152,41 @@ export function CandidateList({
   const abortControllerRef = useRef<AbortController | null>(null);
   const { getDefaultCandidates, setDefaultCandidates } = useCandidatesStore();
   
-  // Initialize filters with default values (not persisted)
+  // Initialize filters - check if we're coming from home page search
+  const getInitialFilters = () => {
+    const fromHomePageSearch = sessionStorage.getItem('fromHomePageSearch');
+    if (fromHomePageSearch === 'true') {
+      // If coming from home page, try to restore filters from sessionStorage
+      const storedFilters = sessionStorage.getItem('candidateFilters');
+      if (storedFilters) {
+        try {
+          const filters = JSON.parse(storedFilters);
+          return {
+            selectedFilter: filters.selectedFilter || 'all',
+            locationFilter: filters.locationFilter || 'all',
+            experienceFilter: filters.experienceFilter || 'all',
+            skillsFilter: filters.skillsFilter || '',
+          };
+        } catch (e) {
+          console.error('Error parsing stored filters:', e);
+        }
+      }
+    }
+    // Default filters
+    return {
+      selectedFilter: 'all',
+      locationFilter: 'all',
+      experienceFilter: 'all',
+      skillsFilter: '',
+    };
+  };
+
+  const initialFilters = getInitialFilters();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [experienceFilter, setExperienceFilter] = useState('all');
-  const [skillsFilter, setSkillsFilter] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState(initialFilters.selectedFilter);
+  const [locationFilter, setLocationFilter] = useState(initialFilters.locationFilter);
+  const [experienceFilter, setExperienceFilter] = useState(initialFilters.experienceFilter);
+  const [skillsFilter, setSkillsFilter] = useState(initialFilters.skillsFilter);
   
   // Cleanup: abort any pending requests on unmount
   useEffect(() => {
@@ -167,10 +197,22 @@ export function CandidateList({
     };
   }, []);
 
+  // Save filters to sessionStorage whenever they change (for persistence across navigation)
+  useEffect(() => {
+    const filters = {
+      selectedFilter,
+      locationFilter,
+      experienceFilter,
+      skillsFilter,
+    };
+    sessionStorage.setItem('candidateFilters', JSON.stringify(filters));
+  }, [selectedFilter, locationFilter, experienceFilter, skillsFilter]);
+
   // Load search results from sessionStorage (from Dashboard search)
   useEffect(() => {
     const storedResults = sessionStorage.getItem('searchResults');
     const storedQuery = sessionStorage.getItem('searchQuery');
+    const fromHomePageSearch = sessionStorage.getItem('fromHomePageSearch');
     
     if (storedResults && storedQuery) {
       const results = JSON.parse(storedResults);
@@ -178,6 +220,30 @@ export function CandidateList({
       setApiSearchResults(results);
       setUseApiSearch(true);
       setSearchQuery(storedQuery);
+      
+      // Update total candidates count if query is empty (from home page search)
+      if (!storedQuery.trim()) {
+        updateTotalCandidatesCount(results.length);
+      }
+      
+      // Restore filters if coming from home page
+      if (fromHomePageSearch === 'true') {
+        const storedFilters = sessionStorage.getItem('candidateFilters');
+        if (storedFilters) {
+          try {
+            const filters = JSON.parse(storedFilters);
+            setSelectedFilter(filters.selectedFilter || 'all');
+            setLocationFilter(filters.locationFilter || 'all');
+            setExperienceFilter(filters.experienceFilter || 'all');
+            setSkillsFilter(filters.skillsFilter || '');
+          } catch (e) {
+            console.error('Error parsing stored filters:', e);
+          }
+        }
+        // Clear the flag after restoring
+        sessionStorage.removeItem('fromHomePageSearch');
+      }
+      
       sessionStorage.removeItem('searchResults');
       sessionStorage.removeItem('searchQuery');
       setLoading(false);
@@ -258,6 +324,12 @@ export function CandidateList({
         
         // Update cache
         setDefaultCandidates(response.response_data);
+        
+        // Update total candidates count in localStorage (only when using empty query)
+        if (!currentSearchQuery.trim()) {
+          const count = response.response_data.length;
+          updateTotalCandidatesCount(count);
+        }
         
         // Update UI with fresh data
         setApiSearchResults(response.response_data);

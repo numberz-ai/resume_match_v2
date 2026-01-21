@@ -11,6 +11,7 @@ import { Upload, FileText, CheckCircle2, Loader2, X, ArrowLeft, Users, Edit, Sav
 import { uploadResume, saveResumeData, type UploadResumeResponse, type SaveResumeDataRequest } from '../api/cv.api';
 import { Alert, AlertDescription } from './ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { incrementCandidateCount } from '../utils/candidateCount';
 
 type Step = 'upload' | 'review' | 'complete';
 
@@ -178,6 +179,8 @@ export function UploadCandidates() {
       } as SaveResumeDataRequest;
       
       await saveResumeData(candidate.candidateId, saveData);
+      // Increment total candidates count
+      incrementCandidateCount();
       setCurrentStep('complete');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save candidate');
@@ -428,7 +431,7 @@ export function UploadCandidates() {
                     {candidates.length} {candidates.length === 1 ? 'CANDIDATE' : 'CANDIDATES'} FOUND
               </div>
                   {candidates.map((candidate, index) => (
-                    <div
+                  <div
                       key={candidate.candidateId || `candidate-${index}`}
                       className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                         index === selectedCandidateIndex
@@ -967,7 +970,7 @@ export function UploadCandidates() {
                       </div>
                       <div className="mt-4 text-right">
                         <p className="text-xs text-gray-500">Powered by ensylon</p>
-                      </div>
+                </div>
                     </Card>
                   )}
               </div>
@@ -1036,7 +1039,7 @@ export function UploadCandidates() {
                       setCurrentStep('upload');
                       setSelectedCandidateIndex(0);
                     }}
-                  >
+              >
                     Add Another Candidate
               </Button>
               <Button
@@ -1049,7 +1052,7 @@ export function UploadCandidates() {
               </div>
             </Card>
           </div>
-        )}
+      )}
       </div>
     </div>
   );

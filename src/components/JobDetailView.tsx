@@ -277,8 +277,8 @@ export function JobDetailView({ jobId, onBack, onSelectCandidate, onOpenCommunic
 
   return (
     <div className="p-8 space-y-6">
-          {/* Header */}
-          <div className="space-y-4">
+      {/* Header */}
+      <div className="space-y-4">
         {/* Back Navigation */}
         <button
           onClick={onBack}

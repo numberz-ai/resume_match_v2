@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
+import { getTotalCandidatesCount } from '../utils/candidateCount';
 import { 
   Briefcase, 
   MapPin, 
@@ -29,6 +30,23 @@ interface JobsListViewProps {
 export function JobsListView({ onSelectJob, onPostJob }: JobsListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [activeCandidatesCount, setActiveCandidatesCount] = useState(getTotalCandidatesCount());
+
+  // Listen for candidate count updates
+  useEffect(() => {
+    // Set initial count
+    setActiveCandidatesCount(getTotalCandidatesCount());
+
+    // Listen for candidate count updates from other components
+    const handleCountUpdate = (event: CustomEvent) => {
+      setActiveCandidatesCount(event.detail.count);
+    };
+    window.addEventListener('candidateCountUpdated', handleCountUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('candidateCountUpdated', handleCountUpdate as EventListener);
+    };
+  }, []);
 
   const departments = ['all', ...Array.from(new Set(mockJobs.map(job => job.department)))];
 
@@ -131,7 +149,7 @@ export function JobsListView({ onSelectJob, onPostJob }: JobsListViewProps) {
               <div>
                 <p className="text-sm text-gray-600">Active candidates</p>
                 <p className="text-2xl text-gray-900 mt-1">
-                  {mockJobs.reduce((sum, job) => sum + getTotalActiveCandidates(job), 0)}
+                  {activeCandidatesCount}
                 </p>
               </div>
               <div className="size-12 bg-emerald-50 rounded-lg flex items-center justify-center">
