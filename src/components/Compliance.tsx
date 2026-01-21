@@ -352,8 +352,15 @@ export function Compliance() {
               <TableBody>
                 {mockDataRequests.map((request) => {
                   const requestDate = new Date(request.requestDate);
-                  const deadline = new Date(requestDate);
+                  // Ensure request date is not in the future (it's a past request)
+                  const now = new Date();
+                  const safeRequestDate = requestDate > now ? new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000) : requestDate;
+                  
+                  const deadline = new Date(safeRequestDate);
                   deadline.setDate(deadline.getDate() + 30); // GDPR 30-day deadline
+                  
+                  // Ensure deadline is in the future
+                  const safeDeadline = deadline < now ? new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000) : deadline;
 
                   return (
                     <TableRow key={request.id}>
@@ -379,13 +386,13 @@ export function Compliance() {
                       <TableCell>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Calendar className="size-4" />
-                          {requestDate.toLocaleDateString()}
+                          {safeRequestDate.toLocaleDateString()}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="size-4 text-amber-600" />
-                          <span className="text-amber-700">{deadline.toLocaleDateString()}</span>
+                          <span className="text-amber-700">{safeDeadline.toLocaleDateString()}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">

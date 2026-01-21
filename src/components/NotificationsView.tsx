@@ -33,6 +33,17 @@ interface NotificationsViewProps {
 }
 
 export function NotificationsView({ onNavigate }: NotificationsViewProps) {
+  // Generate dates relative to today to ensure they're never expired
+  const getDateString = (daysAgo: number): string => {
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: '1',
@@ -40,7 +51,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'New Candidate Applied',
       message: 'Sarah Johnson applied for Senior ML Engineer position',
       time: '5m ago',
-      date: 'Nov 10, 2025',
+      date: getDateString(0), // Today
       read: false,
       targetView: 'candidates',
     },
@@ -50,7 +61,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'Interview Scheduled',
       message: 'Interview with Dr. Emily Chen tomorrow at 2:00 PM',
       time: '1h ago',
-      date: 'Nov 10, 2025',
+      date: getDateString(0), // Today
       read: false,
       targetView: 'calendar',
     },
@@ -60,7 +71,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'Candidate Responded',
       message: 'Michael Zhang replied to your outreach message',
       time: '3h ago',
-      date: 'Nov 10, 2025',
+      date: getDateString(0), // Today
       read: false,
       targetView: 'communication',
     },
@@ -70,7 +81,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'Bias Alert',
       message: 'Low diversity in interview pipeline - Review recommended',
       time: '5h ago',
-      date: 'Nov 10, 2025',
+      date: getDateString(0), // Today
       read: true,
       targetView: 'bias',
     },
@@ -80,7 +91,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'Offer Expiring Soon',
       message: 'Offer to John Doe expires in 2 days',
       time: '1d ago',
-      date: 'Nov 9, 2025',
+      date: getDateString(1), // Yesterday
       read: true,
       targetView: 'candidates',
     },
@@ -90,7 +101,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'Candidate Status Update',
       message: 'James Liu moved to "Interview" stage',
       time: '1d ago',
-      date: 'Nov 9, 2025',
+      date: getDateString(1), // Yesterday
       read: true,
       targetView: 'candidates',
     },
@@ -100,7 +111,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'Interview Completed',
       message: 'Interview feedback submitted for Alex Rivera',
       time: '2d ago',
-      date: 'Nov 8, 2025',
+      date: getDateString(2), // 2 days ago
       read: true,
       targetView: 'calendar',
     },
@@ -110,7 +121,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'System Update',
       message: 'AI matching algorithm updated with improved accuracy',
       time: '3d ago',
-      date: 'Nov 7, 2025',
+      date: getDateString(3), // 3 days ago
       read: true,
     },
     {
@@ -119,7 +130,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'High Priority',
       message: '5 candidates require response within 24 hours',
       time: '3d ago',
-      date: 'Nov 7, 2025',
+      date: getDateString(3), // 3 days ago
       read: true,
       targetView: 'candidates',
     },
@@ -129,7 +140,7 @@ export function NotificationsView({ onNavigate }: NotificationsViewProps) {
       title: 'New Message',
       message: 'Priya Sharma asked about team structure',
       time: '4d ago',
-      date: 'Nov 6, 2025',
+      date: getDateString(4), // 4 days ago
       read: true,
       targetView: 'communication',
     },

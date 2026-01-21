@@ -23,13 +23,21 @@ interface Activity {
 }
 
 export function ActivityTimeline() {
+  // Generate recent dates relative to now to ensure they're never expired
+  const now = new Date();
+  const getRecentDate = (hoursAgo: number) => {
+    const date = new Date(now);
+    date.setHours(date.getHours() - hoursAgo);
+    return date;
+  };
+
   const activities: Activity[] = [
     {
       id: '1',
       type: 'status_change',
       user: 'John Smith',
       action: 'moved candidate to Interview stage',
-      timestamp: new Date(2024, 10, 10, 14, 30),
+      timestamp: getRecentDate(2), // 2 hours ago
       icon: CheckCircle,
       color: 'text-emerald-600'
     },
@@ -38,7 +46,7 @@ export function ActivityTimeline() {
       type: 'note',
       user: 'Sarah Johnson',
       action: 'added a comment',
-      timestamp: new Date(2024, 10, 9, 16, 45),
+      timestamp: getRecentDate(5), // 5 hours ago
       icon: MessageSquare,
       color: 'text-blue-600'
     },
@@ -46,8 +54,8 @@ export function ActivityTimeline() {
       id: '3',
       type: 'interview',
       user: 'Mike Chen',
-      action: 'scheduled technical interview for Nov 12',
-      timestamp: new Date(2024, 10, 9, 11, 20),
+      action: 'scheduled technical interview',
+      timestamp: getRecentDate(8), // 8 hours ago
       icon: Calendar,
       color: 'text-purple-600'
     },
@@ -56,7 +64,7 @@ export function ActivityTimeline() {
       type: 'email',
       user: 'John Smith',
       action: 'sent outreach email',
-      timestamp: new Date(2024, 10, 8, 10, 15),
+      timestamp: getRecentDate(24), // 1 day ago
       icon: Mail,
       color: 'text-amber-600'
     },
@@ -65,7 +73,7 @@ export function ActivityTimeline() {
       type: 'view',
       user: 'Emily Watson',
       action: 'viewed candidate profile',
-      timestamp: new Date(2024, 10, 8, 9, 30),
+      timestamp: getRecentDate(26), // ~1 day ago
       icon: Eye,
       color: 'text-gray-600'
     },
@@ -74,7 +82,7 @@ export function ActivityTimeline() {
       type: 'upload',
       user: 'System',
       action: 'uploaded resume and parsed data',
-      timestamp: new Date(2024, 10, 7, 14, 0),
+      timestamp: getRecentDate(48), // 2 days ago
       icon: FileText,
       color: 'text-indigo-600'
     },
@@ -83,7 +91,7 @@ export function ActivityTimeline() {
       type: 'status_change',
       user: 'John Smith',
       action: 'added candidate to talent pool',
-      timestamp: new Date(2024, 10, 7, 13, 45),
+      timestamp: getRecentDate(50), // ~2 days ago
       icon: UserPlus,
       color: 'text-green-600'
     },

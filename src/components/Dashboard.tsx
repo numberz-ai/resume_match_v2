@@ -3,6 +3,7 @@ import { mockCandidates, mockJobs } from '../data/mockData';
 import { CandidateSearch } from './CandidateSearch';
 import { searchCandidates } from '../api/cv.api';
 import { getTotalCandidatesCount, updateTotalCandidatesCount } from '../utils/candidateCount';
+import { getFutureDateString } from '../utils/dateUtils';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -72,57 +73,81 @@ export function Dashboard({ onNavigateToCandidates }: DashboardProps) {
     candidateName?: string;
   }
 
-  const [reminders, setReminders] = useState<Reminder[]>([
-    {
-      id: '1',
-      type: 'interview',
-      title: 'Interview with Dr. Emily Chen',
-      description: 'Technical interview for Senior ML Engineer position',
-      time: 'Today at 2:00 PM',
-      urgent: true,
-      completed: false,
-      candidateName: 'Dr. Emily Chen'
-    },
-    {
-      id: '2',
-      type: 'follow-up',
-      title: 'Follow up with Sarah Johnson',
-      description: 'Check application status and schedule next interview',
-      time: 'Today at 4:30 PM',
-      urgent: false,
-      completed: false,
-      candidateName: 'Sarah Johnson'
-    },
-    {
-      id: '3',
-      type: 'deadline',
-      title: 'Offer expires for John Doe',
-      description: 'Offer acceptance deadline in 2 days',
-      time: 'Nov 12, 2025',
-      urgent: true,
-      completed: false,
-      candidateName: 'John Doe'
-    },
-    {
-      id: '4',
-      type: 'review',
-      title: 'Review new applications',
-      description: '8 new candidates applied for Backend Engineer role',
-      time: 'Tomorrow at 10:00 AM',
-      urgent: false,
-      completed: false
-    },
-    {
-      id: '5',
-      type: 'interview',
-      title: 'Schedule interview with Marcus Lee',
-      description: 'Second round technical assessment',
-      time: 'Nov 11, 2025',
-      urgent: false,
-      completed: false,
-      candidateName: 'Marcus Lee'
-    }
-  ]);
+  // Generate reminders with future dates
+  const generateReminders = (): Reminder[] => {
+    const now = new Date();
+    const today2PM = new Date(now);
+    today2PM.setHours(14, 0, 0, 0);
+    
+    const today4PM = new Date(now);
+    today4PM.setHours(16, 30, 0, 0);
+    
+    const tomorrow10AM = new Date(now);
+    tomorrow10AM.setDate(tomorrow10AM.getDate() + 1);
+    tomorrow10AM.setHours(10, 0, 0, 0);
+    
+    // 3 days from now for deadline
+    const deadlineDate = new Date(now);
+    deadlineDate.setDate(deadlineDate.getDate() + 3);
+    
+    // 5 days from now for interview
+    const interviewDate = new Date(now);
+    interviewDate.setDate(interviewDate.getDate() + 5);
+
+    return [
+      {
+        id: '1',
+        type: 'interview',
+        title: 'Interview with Dr. Emily Chen',
+        description: 'Technical interview for Senior ML Engineer position',
+        time: getFutureDateString(today2PM, true),
+        urgent: true,
+        completed: false,
+        candidateName: 'Dr. Emily Chen'
+      },
+      {
+        id: '2',
+        type: 'follow-up',
+        title: 'Follow up with Sarah Johnson',
+        description: 'Check application status and schedule next interview',
+        time: getFutureDateString(today4PM, true),
+        urgent: false,
+        completed: false,
+        candidateName: 'Sarah Johnson'
+      },
+      {
+        id: '3',
+        type: 'deadline',
+        title: 'Offer expires for John Doe',
+        description: 'Offer acceptance deadline in 2 days',
+        time: getFutureDateString(deadlineDate, false, 2, 3),
+        urgent: true,
+        completed: false,
+        candidateName: 'John Doe'
+      },
+      {
+        id: '4',
+        type: 'review',
+        title: 'Review new applications',
+        description: '8 new candidates applied for Backend Engineer role',
+        time: getFutureDateString(tomorrow10AM, true),
+        urgent: false,
+        completed: false
+      },
+      {
+        id: '5',
+        type: 'interview',
+        title: 'Schedule interview with Marcus Lee',
+        description: 'Second round technical assessment',
+        time: getFutureDateString(interviewDate, false, 5, 5),
+        urgent: false,
+        completed: false,
+        candidateName: 'Marcus Lee'
+      }
+    ];
+  };
+
+  const [reminders, setReminders] = useState<Reminder[]>(generateReminders());
 
   const toggleReminderComplete = (id: string) => {
     setReminders(reminders.map(r => 

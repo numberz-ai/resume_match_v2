@@ -324,7 +324,7 @@ export function IntegrationsView() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-900">candidates_batch_nov.csv</p>
-                    <p className="text-xs text-gray-600">45 candidates imported • Nov 10, 2025</p>
+                    <p className="text-xs text-gray-600">45 candidates imported • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   </div>
                 </div>
                 <Badge className="bg-green-100 text-green-700">Success</Badge>
@@ -350,7 +350,7 @@ export function IntegrationsView() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-900">linkedin_export_oct.csv</p>
-                    <p className="text-xs text-gray-600">23 candidates imported • Nov 8, 2025</p>
+                    <p className="text-xs text-gray-600">23 candidates imported • {new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   </div>
                 </div>
                 <Badge className="bg-green-100 text-green-700">Success</Badge>
