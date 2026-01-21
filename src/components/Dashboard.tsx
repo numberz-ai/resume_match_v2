@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { mockCandidates, mockJobs } from '../data/mockData';
-import { CandidateSearch } from './CandidateSearch';
 import { searchCandidates } from '../api/cv.api';
 import { getTotalCandidatesCount, updateTotalCandidatesCount } from '../utils/candidateCount';
 import { getFutureDateString } from '../utils/dateUtils';
@@ -250,13 +249,6 @@ export function Dashboard({ onNavigateToCandidates }: DashboardProps) {
           );
         })}
       </div>
-
-      {/* AI Search - Redirect to candidates page */}
-      <CandidateSearch 
-        redirectOnSearch={true}
-        onNavigateToCandidates={onNavigateToCandidates}
-        showQuickSearch={false}
-      />
 
       {/* AI Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
